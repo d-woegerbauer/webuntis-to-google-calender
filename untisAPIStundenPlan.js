@@ -38,28 +38,105 @@ async function conn() {
   timeTable = sortTimeTableByDateAndTime(timeTable);
   timeTable = filterForClass(timeTable, "4AHITM");
   console.table(timeTable);
+  timeTable = addTravelTimeToCalender(timeTable, 30);
   addEventsToGoogleCalender(timeTable);
   console.log("done");
+}
+
+function addTravelTimeToCalender(timeTable, travelTime) {
+  let groupedTimetable = groupTimetableByDay(timeTable);
+  let newTimeTable = [];
+  for (let day in groupedTimetable) {
+    let startElement = groupedTimetable[day][0];
+    let endElement = groupedTimetable[day][groupedTimetable[day].length - 1];
+    let start = startElement.startTime;
+    let end = endElement.endTime;
+    console.log(start, end);
+    newTimeTable.push({
+      summary: "Travel time",
+      description: "",
+      start: {
+        dateTime: combineDateAndTime(
+          startElement.date,
+          addOrReduceMinutsFromTime(startElement.startTime, -travelTime)
+        ),
+        timeZone: "Europe/Berlin",
+      },
+      end: {
+        dateTime: combineDateAndTime(startElement.date, startElement.startTime),
+        timeZone: "Europe/Berlin",
+      },
+    });
+    newTimeTable.push({
+      summary: "Travel time",
+      description: "",
+      start: {
+        dateTime: combineDateAndTime(endElement.date, endElement.endTime),
+        timeZone: "Europe/Berlin",
+      },
+      end: {
+        dateTime: combineDateAndTime(
+          endElement.date,
+          addOrReduceMinutsFromTime(endElement.endTime, travelTime)
+        ),
+        timeZone: "Europe/Berlin",
+      },
+    });
+  }
+  return [...newTimeTable, ...timeTable];
+}
+
+function addOrReduceMinutsFromTime(time, addMinutes) {
+  let timeArray = time.split(":");
+  let hours = parseInt(timeArray[0]);
+  let minutes = parseInt(timeArray[1]);
+  minutes += addMinutes;
+  if (minutes > 60) {
+    hours += 1;
+    minutes -= 60;
+  }
+  if (minutes < 0) {
+    hours -= 1;
+    minutes += 60;
+  }
+  return `${hours}:${minutes}`;
+}
+
+function groupTimetableByDay(timeTable) {
+  let groupedTimetable = [];
+
+  for (let i = 0; i < timeTable.length; i++) {
+    let date = new Date(timeTable[i].date).toISOString().split("T")[0];
+    if (!groupedTimetable[date]) {
+      groupedTimetable[date] = [];
+    }
+    groupedTimetable[date].push(timeTable[i]);
+  }
+  return groupedTimetable;
 }
 
 function addEventsToGoogleCalender(timeTable) {
   timeTable.forEach((elem, index) => {
     console.log(elem);
-    const event = {
-      summary: elem.subject,
-      description: `Lehrer:\n${getTeacherNamesOfArray(elem.teacher)}\nRaum: ${
-        elem.room
-      }`,
-      start: {
-        dateTime: combineDateAndTime(elem.date, elem.startTime),
-        timeZone: "Europe/Berlin",
-      },
-      end: {
-        dateTime: combineDateAndTime(elem.date, elem.endTime),
-        timeZone: "Europe/Berlin",
-      },
-      location: "HTBLA Leonding",
-    };
+    let event = elem;
+
+    if (event.description != "") {
+      event = {
+        summary: elem.subject,
+        description: `Lehrer:\n${getTeacherNamesOfArray(elem.teacher)}\nRaum: ${
+          elem.room
+        }`,
+        start: {
+          dateTime: combineDateAndTime(elem.date, elem.startTime),
+          timeZone: "Europe/Berlin",
+        },
+        end: {
+          dateTime: combineDateAndTime(elem.date, elem.endTime),
+          timeZone: "Europe/Berlin",
+        },
+        location: "HTBLA Leonding",
+      };
+    }
 
     setTimeout(() => {
       calendar.events.insert(
@@ -77,7 +154,7 @@ function addEventsToGoogleCalender(timeTable) {
           }
         }
       );
-    }, 700 * index);
+    }, 1000 * index);
   });
 }
 
@@ -87,7 +164,7 @@ function deleteAllCalenderEntries() {
       auth: auth,
       calendarId: CALENDAR_ID,
       timeMin: new Date("2000-01-01T00:00:00.000Z").toISOString(),
-      maxResults: 1000,
+      maxResults: 10000,
       singleEvents: true,
       orderBy: "startTime",
     },
@@ -122,7 +199,7 @@ function deleteAllCalenderEntries() {
                 console.log("Event deleted");
               }
             );
-          }, 700 * i);
+          }, 1000 * i);
         }
       }
     }
@@ -131,6 +208,7 @@ function deleteAllCalenderEntries() {
 
 function getTeacherNamesOfArray(teachers) {
   let teacherNames = [];
+  console.log(teachers);
   for (let i = 0; i < teachers.length; i++) {
     teacherNames.push(
       `${teachers[i].name} - ${teachers[i].foreName} ${teachers[i].longName}\n`
