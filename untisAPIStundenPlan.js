@@ -13,7 +13,6 @@ const calendar = google.calendar({
   version: "v3",
 });
 
-
 const auth = new google.auth.JWT(
   CREDENTIALS.client_email,
   null,
@@ -57,12 +56,18 @@ function addTravelTimeToCalender(timeTable, travelTime) {
       start: {
         dateTime: combineDateAndTime(
           startElement.date,
-          addOrReduceMinutsFromTime(changeTimeZoneDifference(startElement.startTime), -travelTime)
+          addOrReduceMinutsFromTime(
+            changeTimeZoneDifference(startElement.startTime),
+            -travelTime
+          )
         ),
         timeZone: "Europe/Berlin",
       },
       end: {
-        dateTime: combineDateAndTime(changeTimeZoneDifference(startElement.date()), startElement.startTime),
+        dateTime: combineDateAndTime(
+          startElement.date,
+          changeTimeZoneDifference(startElement.startTime)
+        ),
         timeZone: "Europe/Berlin",
       },
     });
@@ -70,13 +75,19 @@ function addTravelTimeToCalender(timeTable, travelTime) {
       summary: "Travel time",
       description: "",
       start: {
-        dateTime: combineDateAndTime(changeTimeZoneDifference(endElement.date), endElement.endTime),
+        dateTime: combineDateAndTime(
+          endElement.date,
+          changeTimeZoneDifference(endElement.endTime)
+        ),
         timeZone: "Europe/Berlin",
       },
       end: {
         dateTime: combineDateAndTime(
           endElement.date,
-          addOrReduceMinutsFromTime(changeTimeZoneDifference(endElement.endTime), travelTime)
+          addOrReduceMinutsFromTime(
+            changeTimeZoneDifference(endElement.endTime),
+            travelTime
+          )
         ),
         timeZone: "Europe/Berlin",
       },
@@ -85,7 +96,7 @@ function addTravelTimeToCalender(timeTable, travelTime) {
   return [...newTimeTable, ...timeTable];
 }
 
-function changeTimeZoneDifference(time){
+function changeTimeZoneDifference(time) {
   let timeArray = time.split(":");
   let hours = parseInt(timeArray[0]);
   let minutes = parseInt(timeArray[1]);
@@ -133,11 +144,11 @@ function addEventsToGoogleCalender(timeTable) {
           elem.room
         }`,
         start: {
-          dateTime: combineDateAndTime(elem.date, elem.startTime),
+          dateTime: combineDateAndTime(elem.date, changeTimeZoneDifference(elem.startTime)),
           timeZone: "Europe/Berlin",
         },
         end: {
-          dateTime: combineDateAndTime(elem.date, elem.endTime),
+          dateTime: combineDateAndTime(elem.date, changeTimeZoneDifference(elem.endTime)),
           timeZone: "Europe/Berlin",
         },
         location: "HTBLA Leonding",
@@ -160,9 +171,7 @@ function addEventsToGoogleCalender(timeTable) {
           }
         }
       );
-      console.log(
-        `${Math.round((index / timeTable.length) * 100)}%`
-      );
+      console.log(`${Math.round((index / timeTable.length) * 100)}%`);
     }, 1100 * index);
   });
 }
