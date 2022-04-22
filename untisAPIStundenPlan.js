@@ -24,21 +24,23 @@ const auth = new google.auth.JWT(
 conn();
 
 async function conn() {
-  await w.connect(
-    process.env.user,
-    process.env.password,
-    process.env.school,
-    process.env.server
-  );
-  deleteAllCalenderEntries();
-  let classId = await getClassIdByClassName("4AHITM");
-  let timeTable = await getTimetableFromClass(classId);
-  timeTable = sortTimeTableByDateAndTime(timeTable);
-  timeTable = filterForClass(timeTable, "4AHITM");
-  // remove this function call to prevent having travel time before and after school
-  timeTable = addTravelTimeToCalender(timeTable, 30);
-  addEventsToGoogleCalender(timeTable);
-  console.log("done");
+  setInterval(async () => {
+    await w.connect(
+      process.env.user,
+      process.env.password,
+      process.env.school,
+      process.env.server
+    );
+    deleteAllCalenderEntries();
+    let classId = await getClassIdByClassName("4AHITM");
+    let timeTable = await getTimetableFromClass(classId);
+    timeTable = sortTimeTableByDateAndTime(timeTable);
+    timeTable = filterForClass(timeTable, "4AHITM");
+    // remove this function call to prevent having travel time before and after school
+    timeTable = addTravelTimeToCalender(timeTable, 30);
+    addEventsToGoogleCalender(timeTable);
+    console.log("done");
+  }, 900000);
 }
 
 function addTravelTimeToCalender(timeTable, travelTime) {
@@ -55,12 +57,12 @@ function addTravelTimeToCalender(timeTable, travelTime) {
       start: {
         dateTime: combineDateAndTime(
           startElement.date,
-          addOrReduceMinutsFromTime(startElement.startTime, -travelTime)
+          addOrReduceMinutsFromTime(changeTimeZoneDifference(startElement.startTime), -travelTime)
         ),
         timeZone: "Europe/Berlin",
       },
       end: {
-        dateTime: combineDateAndTime(startElement.date, startElement.startTime),
+        dateTime: combineDateAndTime(changeTimeZoneDifference(startElement.date()), startElement.startTime),
         timeZone: "Europe/Berlin",
       },
     });
@@ -68,19 +70,27 @@ function addTravelTimeToCalender(timeTable, travelTime) {
       summary: "Travel time",
       description: "",
       start: {
-        dateTime: combineDateAndTime(endElement.date, endElement.endTime),
+        dateTime: combineDateAndTime(changeTimeZoneDifference(endElement.date), endElement.endTime),
         timeZone: "Europe/Berlin",
       },
       end: {
         dateTime: combineDateAndTime(
           endElement.date,
-          addOrReduceMinutsFromTime(endElement.endTime, travelTime)
+          addOrReduceMinutsFromTime(changeTimeZoneDifference(endElement.endTime), travelTime)
         ),
         timeZone: "Europe/Berlin",
       },
     });
   }
   return [...newTimeTable, ...timeTable];
+}
+
+function changeTimeZoneDifference(time){
+  let timeArray = time.split(":");
+  let hours = parseInt(timeArray[0]);
+  let minutes = parseInt(timeArray[1]);
+  hours -= 2;
+  return `${hours}:${minutes}`;
 }
 
 function addOrReduceMinutsFromTime(time, addMinutes) {
