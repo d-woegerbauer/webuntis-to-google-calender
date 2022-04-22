@@ -8,13 +8,11 @@ const e = w.entities;
 TimeTableEntity = require("untis-api").Entities.TimeTableEntity;
 let CREDENTIALS = require("./credentials.json");
 const CALENDAR_ID = process.env.CALENDAR_ID;
-console.log(CALENDAR_ID);
 const SCOPES = ["https://www.googleapis.com/auth/calendar"];
 const calendar = google.calendar({
   version: "v3",
 });
 
-console.log(CREDENTIALS);
 
 const auth = new google.auth.JWT(
   CREDENTIALS.client_email,
@@ -37,7 +35,7 @@ async function conn() {
   let timeTable = await getTimetableFromClass(classId);
   timeTable = sortTimeTableByDateAndTime(timeTable);
   timeTable = filterForClass(timeTable, "4AHITM");
-  console.table(timeTable);
+  // remove this function call to prevent having travel time before and after school
   timeTable = addTravelTimeToCalender(timeTable, 30);
   addEventsToGoogleCalender(timeTable);
   console.log("done");
@@ -51,7 +49,6 @@ function addTravelTimeToCalender(timeTable, travelTime) {
     let endElement = groupedTimetable[day][groupedTimetable[day].length - 1];
     let start = startElement.startTime;
     let end = endElement.endTime;
-    console.log(start, end);
     newTimeTable.push({
       summary: "Travel time",
       description: "",
@@ -117,7 +114,6 @@ function groupTimetableByDay(timeTable) {
 
 function addEventsToGoogleCalender(timeTable) {
   timeTable.forEach((elem, index) => {
-    console.log(elem);
     let event = elem;
 
     if (event.description != "") {
@@ -154,7 +150,10 @@ function addEventsToGoogleCalender(timeTable) {
           }
         }
       );
-    }, 1000 * index);
+      console.log(
+        `${Math.round((index / timeTable.length) * 100)}%`
+      );
+    }, 1100 * index);
   });
 }
 
@@ -196,10 +195,9 @@ function deleteAllCalenderEntries() {
                   );
                   return;
                 }
-                console.log("Event deleted");
               }
             );
-          }, 1000 * i);
+          }, 1100 * i);
         }
       }
     }
@@ -208,7 +206,6 @@ function deleteAllCalenderEntries() {
 
 function getTeacherNamesOfArray(teachers) {
   let teacherNames = [];
-  console.log(teachers);
   for (let i = 0; i < teachers.length; i++) {
     teacherNames.push(
       `${teachers[i].name} - ${teachers[i].foreName} ${teachers[i].longName}\n`
