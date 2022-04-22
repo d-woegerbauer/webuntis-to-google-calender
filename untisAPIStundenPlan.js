@@ -32,11 +32,12 @@ async function conn() {
     process.env.school,
     process.env.server
   );
+  deleteAllCalenderEntries();
   let classId = await getClassIdByClassName("4AHITM");
   let timeTable = await getTimetableFromClass(classId);
   timeTable = sortTimeTableByDateAndTime(timeTable);
   timeTable = filterForClass(timeTable, "4AHITM");
-  timeTable = await filterForUpdates(timeTable);
+  console.table(timeTable);
   addEventsToGoogleCalender(timeTable);
   console.log("done");
 }
@@ -44,7 +45,21 @@ async function conn() {
 function addEventsToGoogleCalender(timeTable) {
   timeTable.forEach((elem, index) => {
     console.log(elem);
-    const event = createGoogleCalenderObject(elem);
+    const event = {
+      summary: elem.subject,
+      description: `Lehrer:\n${getTeacherNamesOfArray(elem.teacher)}\nRaum: ${
+        elem.room
+      }`,
+      start: {
+        dateTime: combineDateAndTime(elem.date, elem.startTime),
+        timeZone: "Europe/Berlin",
+      },
+      end: {
+        dateTime: combineDateAndTime(elem.date, elem.endTime),
+        timeZone: "Europe/Berlin",
+      },
+      location: "HTBLA Leonding",
+    };
 
     setTimeout(() => {
       calendar.events.insert(
@@ -66,27 +81,8 @@ function addEventsToGoogleCalender(timeTable) {
   });
 }
 
-function createGoogleCalenderObject(element){
-  let event = {
-    summary: element.subject,
-    description: `Lehrer:\n${getTeacherNamesOfArray(element.teacher)}\nRaum: ${
-      element.room
-    }`,
-    start: {
-      dateTime: combineDateAndTime(element.date, element.startTime),
-      timeZone: "Europe/Berlin",
-    },
-    end: {
-      dateTime: combineDateAndTime(element.date, element.endTime),
-      timeZone: "Europe/Berlin",
-    },
-    location: "HTBLA Leonding",
-  };
-  return event;
-}
-
-async function filterForUpdates() {
-  await calendar.events.list(
+function deleteAllCalenderEntries() {
+  calendar.events.list(
     {
       auth: auth,
       calendarId: CALENDAR_ID,
@@ -242,4 +238,5 @@ function getDate(date) {
   let year = date.substring(0, 4);
   let month = date.substring(4, 6);
   let day = date.substring(6, 8);
-  re
+  return `${year}-${month}-${day}`;
+}
